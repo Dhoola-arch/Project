@@ -200,6 +200,14 @@ WHERE name = '孙八';
 
 1.多种不同的连接类型和不同的连接条件使用
 
+
+
+2.视图的构建和使用
+
+课后完成：
+
+1.试用连接操作替换WHERE
+
 ```
 SELECT s.name, c.class_name
 FROM students s, classes c
@@ -213,11 +221,6 @@ WHERE c.department = '计算机学院';
 
 ```
 
-2.视图的构建和使用
-
-课后完成：
-
-1.试用连接操作替换WHERE
 
 2.创建视图
 
@@ -263,7 +266,45 @@ WHERE department = '计算机学院';
 
 1.日期数据处理
 
+```
+-- 获取当前日期和时间
+SELECT CURRENT_DATE AS today, CURRENT_TIME AS now, NOW() AS timestamp_now;
+
+-- 提取日期部分
+SELECT 
+    event_name,
+    EXTRACT(YEAR FROM start_date) AS event_year,
+    EXTRACT(MONTH FROM event_timestamp) AS event_month,
+    DATE_PART('dow', start_date) AS day_of_week -- 0=周日, 6=周六
+FROM events;
+
+-- 格式化日期
+SELECT 
+    event_name,
+    TO_CHAR(start_date, 'YYYY年MM月DD日') AS date_cn,
+    TO_CHAR(event_timestamp, 'HH24:MI "on" Dy, DD Mon YYYY') AS formatted_timestamp
+FROM events;
+```
+
 2.计算时间间隔
+
+```
+-- 计算两个日期之间的天数
+SELECT 
+    event_name,
+    start_date,
+    CURRENT_DATE - start_date AS days_since_start
+FROM events;
+
+-- 精确时间差
+SELECT 
+    event_name,
+    event_timestamp,
+    NOW() - event_timestamp AS time_elapsed,
+    AGE(NOW(), event_timestamp) AS precise_interval
+FROM events;
+
+```
 
 收获：
 
@@ -286,7 +327,35 @@ WHERE department = '计算机学院';
 
 1.创建一个简单的计算折扣价格的函数
 
+```
+-- 创建折扣计算函数
+CREATE OR REPLACE FUNCTION calculate_discount_price(
+    base_price NUMERIC, 
+    discount_rate NUMERIC
+) RETURNS NUMERIC AS $$
+DECLARE
+    discount_amount NUMERIC;
+    final_price NUMERIC;
+BEGIN
+    -- 计算折扣金额
+    discount_amount := base_price * (discount_rate / 100);
+    
+    -- 确保折扣后价格不低于0
+    final_price := GREATEST(base_price - discount_amount, 0);
+    
+    RETURN ROUND(final_price, 2);
+END;
+
+```
+
 2.设置一个触发器，当任何记录被修改时，更新为当前时间戳
+
+```
+CREATE TRIGGER update_student_timestamp
+BEFORE UPDATE ON students
+FOR EACH ROW
+EXECUTE FUNCTION update_last_modified();
+```
 
 收获：
 
@@ -325,6 +394,53 @@ WHERE department = '计算机学院';
 
 1.第二范式的规范化
 
+```
+CREATE TABLE orders (
+    order_id INT,
+    customer_id INT,
+    customer_name VARCHAR(50),
+    product_id INT,
+    product_name VARCHAR(50),
+    category VARCHAR(30),
+    quantity INT,
+    price DECIMAL(10,2),
+    order_date DATE,
+    PRIMARY KEY (order_id, product_id) -- 复合主键
+);
+
+-- 1. 客户表 (消除客户信息部分依赖)
+CREATE TABLE customers (
+    customer_id INT PRIMARY KEY,
+    customer_name VARCHAR(50) NOT NULL
+);
+
+-- 2. 产品表 (消除产品信息部分依赖)
+CREATE TABLE products (
+    product_id INT PRIMARY KEY,
+    product_name VARCHAR(50) NOT NULL,
+    category VARCHAR(30) NOT NULL,
+    price DECIMAL(10,2) NOT NULL
+);
+
+-- 3. 订单主表
+CREATE TABLE orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT NOT NULL,
+    order_date DATE NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+);
+
+-- 4. 订单明细表 
+CREATE TABLE order_details (
+    order_id INT,
+    product_id INT,
+    quantity INT NOT NULL CHECK (quantity > 0),
+    PRIMARY KEY (order_id, product_id),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+```
+
 收获：
 
 1.1NF 是规范化的基础，确保属性的原子性，不可再分；2NF 在此基础上解决部分依赖问题，使非主属性完全依赖于主键。
@@ -339,7 +455,32 @@ WHERE department = '计算机学院';
 
 课后完成：
 
-1.第三范式的规范化
+1.BCNF范式的规范化
+```
+-- 违反BCNF的示例
+CREATE TABLE course_enrollment (
+    student_id INT,
+    course_id INT,
+    instructor_id INT,
+    PRIMARY KEY (student_id, course_id)
+);
+
+-- 假设：
+-- 每个课程只有一个教师 (course_id → instructor_id)
+-- 每个教师只教一门课程 (instructor_id → course_id)
+
+-- BCNF规范化方案：
+CREATE TABLE course_instructor (
+    course_id INT PRIMARY KEY,
+    instructor_id INT UNIQUE NOT NULL
+);
+
+CREATE TABLE enrollments (
+    student_id INT,
+    course_id INT REFERENCES course_instructor(course_id),
+    PRIMARY KEY (student_id, course_id)
+);
+```
 
 收获：
 
@@ -484,4 +625,8 @@ READ COMMITTED	    ✅避免	    ❌可能	     ❌可能
 REPEATABLE READ	    ✅避免	    ✅避免	     ❌可能
 SERIALIZABLE	     ✅避免	    ✅避免	     ✅避免
 
+
+
+问题总结：
+1.很多时候需要AI辅助学习和完成作业
 
