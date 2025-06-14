@@ -625,7 +625,8 @@ READ COMMITTED	    ✅避免	    ❌可能	     ❌可能
 REPEATABLE READ	    ✅避免	    ✅避免	     ❌可能
 SERIALIZABLE	     ✅避免	    ✅避免	     ✅避免
 
-
+# 第十六周
+了解DUCKdb和一些其他数据库的基本信息和使用方式
 
 问题总结：
 1.很多时候需要AI辅助学习和完成作业
