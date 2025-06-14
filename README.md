@@ -31,6 +31,16 @@
 
 1.尝试创建一个关系表
 
+```
+CREATE TABLE students (
+    student_id SERIAL PRIMARY KEY,          -- 学生ID 
+    name VARCHAR(50) NOT NULL,              -- 姓名
+    gender CHAR(1) CHECK (gender IN ('M', 'F', 'O')), -- 性别 
+    birth_date DATE,                        -- 出生日期
+    enrollment_date DATE DEFAULT CURRENT_DATE, -- 入学日期
+);
+```
+
 收获：
 
 1.主码的非空性和唯一性
@@ -50,6 +60,18 @@
 课后完成：
 
 1.尝试使用SELECT选择来查询数据
+
+```
+-- 查询所有学生信息
+SELECT * FROM students;
+
+-- 查询特定列（姓名和邮箱）
+SELECT name, email FROM students;
+
+-- 限制返回行数（前5名学生）
+SELECT * FROM students LIMIT 5;
+
+```
 
 收获：
 
@@ -74,6 +96,27 @@
 
 2.转义字符的使用
 
+```
+SELECT * FROM students 
+WHERE name LIKE '张%';
+
+SELECT * FROM students 
+WHERE name LIKE '%三%';
+
+SELECT * FROM students 
+WHERE name LIKE '_四%';
+
+SELECT * FROM students 
+WHERE name LIKE '%\_%' ESCAPE '\';  -- 查找包含 _ 的名字
+
+SELECT * FROM students 
+WHERE name LIKE '%\%%' ESCAPE '\';  -- 查找包含 % 的名字
+
+SELECT * FROM students 
+WHERE name LIKE '%#_%' ESCAPE '#';  -- 使用 # 作为转义符
+
+```
+
 收获：
 
 1.LIKE查询内容的大小写敏感
@@ -93,6 +136,22 @@
 
 1.嵌套子查询结合聚合函数的代码编写
 
+```
+-- 找出每个班级中分数最高的学生
+SELECT 
+    student_id,
+    name,
+    class_id,
+    score
+FROM students s1
+WHERE score = (
+    SELECT MAX(score)
+    FROM students s2
+    WHERE s2.class_id = s1.class_id
+);
+
+```
+
 收获：
 
 1.unknown和null的关系
@@ -110,6 +169,23 @@
 
 1.尝试对已有数据进行增删改的操作
 
+```
+-- 插入单个学生
+INSERT INTO students (name, gender, birth_date, class_id, email)
+VALUES ('赵六', 'M', '2004-05-20', 1, 'zhaoliu@edu.cn');
+
+-- 更新单个学生信息
+UPDATE students
+SET phone = '13912345678', updated_at = NOW()
+WHERE name = '赵六';
+
+-- 删除单个学生
+DELETE FROM students
+WHERE name = '孙八';
+```
+
+
+
 收获：
 
 1.ORDER BY 务必明确指定 ASC/DESC，否则默认为 ASC。
@@ -124,6 +200,19 @@
 
 1.多种不同的连接类型和不同的连接条件使用
 
+```
+SELECT s.name, c.class_name
+FROM students s, classes c
+WHERE s.class_id = c.class_id
+  AND c.department = '计算机学院';
+
+SELECT s.name, c.class_name
+FROM students s
+INNER JOIN classes c ON s.class_id = c.class_id
+WHERE c.department = '计算机学院';
+
+```
+
 2.视图的构建和使用
 
 课后完成：
@@ -131,6 +220,27 @@
 1.试用连接操作替换WHERE
 
 2.创建视图
+
+```
+-- 创建学生详情视图
+CREATE VIEW student_details AS
+SELECT 
+    s.student_id,
+    s.name AS student_name,
+    s.gender,
+    s.birth_date,
+    c.class_name,
+    c.department,
+    t.name AS advisor_name
+FROM students s
+JOIN classes c ON s.class_id = c.class_id
+LEFT JOIN teachers t ON c.advisor_id = t.teacher_id;
+
+-- 使用视图查询
+SELECT * FROM student_details 
+WHERE department = '计算机学院';
+
+```
 
 收获：
 
@@ -251,7 +361,7 @@
 
 1.postgresql和python的连接
 
-'''import psycopg2
+```import psycopg2
 from psycopg2 import sql
 
 # 创建连接
@@ -292,7 +402,8 @@ except psycopg2.Error as e:
     
 finally:
     if conn:
-        conn.close()'''
+        conn.close()
+```
 
 
 
@@ -319,13 +430,19 @@ finally:
 课后完成：
 
 1.创建索引加速查询
-'''
+```
 CREATE INDEX idx_department ON employees(department);
 CREATE INDEX idx_salary ON employees(salary);
 CREATE INDEX idx_department_salary ON employees(department, salary);
-'''
+```
 
 2.使用EXPLAIN函数分析查询计划
+```
+EXPLAIN 
+SELECT * FROM employees 
+WHERE department = 'Engineering' 
+  AND salary > 100000;
+```
 
 
 收获：
@@ -343,15 +460,28 @@ CREATE INDEX idx_department_salary ON employees(department, salary);
 
 课后完成：
 
-1.长事务的检测和优化
+1.空闲事务的检测
+```
 
+SELECT 
+    pid,
+    usename,
+    state,
+    query,
+    age(now(), state_change) AS idle_duration
+FROM pg_stat_activity 
+WHERE state = 'idle in transaction' 
+  AND now() - state_change > interval '2 minutes'
+ORDER BY idle_duration DESC;
+
+```
 
 收获：
 
   隔离级别	         脏读       不可重复读      幻读	        	
-READ UNCOMMITTED	  ❌可能	    ❌可能	     ❌可能
+READ UNCOMMITTED	 ❌可能	    ❌可能	     ❌可能
 READ COMMITTED	    ✅避免	    ❌可能	     ❌可能	
 REPEATABLE READ	    ✅避免	    ✅避免	     ❌可能
-SERIALIZABLE	      ✅避免	    ✅避免	     ✅避免
+SERIALIZABLE	     ✅避免	    ✅避免	     ✅避免
 
 
