@@ -220,7 +220,7 @@
 1.1NF 是规范化的基础，确保属性的原子性，不可再分；2NF 在此基础上解决部分依赖问题，使非主属性完全依赖于主键。
 
 
-# 第十一周
+# 第十二周
 课堂学习：
 
 1.第三范式
@@ -240,15 +240,118 @@
 3.实际设计中，BCNF 主要用于复杂依赖场景（如多候选键表），而 3NF 已能满足大多数业务需求。规范化的核心是在数据一致性和查询效率之间找到平衡，避免过度设计或忽视依赖异常。
 
 
-# 第十二周
+
+# 第十三周
+课堂学习：
+
+1.python与数据库的连接
+
+
+课后完成：
+
+1.postgresql和python的连接
+
+'''import psycopg2
+from psycopg2 import sql
+
+# 创建连接
+conn = psycopg2.connect(
+    host="localhost",
+    dbname="your_db",
+    user="your_username",
+    password="your_password",
+    port=5432
+)
+
+try:
+    # 创建游标
+    with conn.cursor() as cursor:
+        # 安全SQL拼接（防注入）
+        query = sql.SQL("SELECT * FROM products WHERE category = {}").format(
+            sql.Literal('electronics')
+        )
+        cursor.execute(query)
+        
+        # 获取所有结果
+        products = cursor.fetchall()
+        for product in products:
+            print(product)
+            
+        # 批量插入
+        data = [('phone', 599), ('laptop', 1299)]
+        insert_query = sql.SQL("INSERT INTO products (name, price) VALUES {}").format(
+            sql.SQL(',').join(map(sql.Literal, data))
+        )
+        cursor.execute(insert_query)
+        
+    conn.commit()
+    
+except psycopg2.Error as e:
+    print(f"PostgreSQL error: {e}")
+    conn.rollback()
+    
+finally:
+    if conn:
+        conn.close()'''
+
+
+
+收获：
+
+1.直接使用相关的包即可关联数据库
+
+2.注意防SQL注入
+
+
+
+
+
+
+# 第十四周
 课堂学习：
 
 1.储存结构和索引
 
 2.查询的优化
 
+3.索引
+
 课后完成：
 
 1.创建索引加速查询
+'''
+CREATE INDEX idx_department ON employees(department);
+CREATE INDEX idx_salary ON employees(salary);
+CREATE INDEX idx_department_salary ON employees(department, salary);
+'''
 
 2.使用EXPLAIN函数分析查询计划
+
+
+收获：
+
+1.索引的写性能下降可使读性能提升，需平衡读写比例
+
+2.EXPLAIN起到重要的导航作用，优化前必看执行计划，避免盲目调优
+
+# 第十五周
+课堂学习：
+
+1.事务的四个属性
+
+2.事务的分隔等级
+
+课后完成：
+
+1.长事务的检测和优化
+
+
+收获：
+
+  隔离级别	         脏读       不可重复读      幻读	        	
+READ UNCOMMITTED	  ❌可能	    ❌可能	     ❌可能
+READ COMMITTED	    ✅避免	    ❌可能	     ❌可能	
+REPEATABLE READ	    ✅避免	    ✅避免	     ❌可能
+SERIALIZABLE	      ✅避免	    ✅避免	     ✅避免
+
+
